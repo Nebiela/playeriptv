@@ -3,200 +3,200 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>IPTV Pro UI</title>
-
+<title>IPTV Pro Advanced</title>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
 <style>
-body {
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: #0f0f0f;
-  color: white;
+body { margin:0; font-family:sans-serif; background:#0f0f0f; color:white;}
+header { padding:15px; background:#141414; font-size:20px;}
+.container { display:flex;}
+.sidebar { width:220px; background:#111; padding:10px;}
+.content { flex:1; padding:15px;}
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px;}
+.card { background:#1c1c1c; border-radius:8px; cursor:pointer; overflow:hidden;}
+.card:hover { transform:scale(1.05);}
+.card img { width:100%; height:100px; object-fit:cover;}
+.card p { padding:5px; font-size:13px;}
+
+video { width:100%; max-height:400px; margin-top:10px; border-radius:10px;}
+
+input, button {
+  padding:8px; margin:5px 0; width:100%;
+  border:none; border-radius:5px;
 }
 
-/* Header */
-header {
-  padding: 15px 20px;
-  font-size: 22px;
-  font-weight: bold;
-  background: #141414;
-  border-bottom: 1px solid #222;
-}
+button { background:#e50914; color:white; cursor:pointer;}
 
-/* Layout */
-.container {
-  display: flex;
-}
-
-/* Sidebar */
-.sidebar {
-  width: 200px;
-  background: #111;
-  height: 100vh;
-  padding: 15px;
-  border-right: 1px solid #222;
-}
-
-.sidebar h3 {
-  color: #aaa;
-}
-
-.sidebar button {
-  width: 100%;
-  margin: 5px 0;
-  padding: 10px;
-  background: #222;
-  border: none;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.sidebar button:hover {
-  background: #e50914;
-}
-
-/* Content */
-.content {
-  flex: 1;
-  padding: 20px;
-}
-
-/* Grid */
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 15px;
-}
-
-/* Card */
-.card {
-  background: #1c1c1c;
-  border-radius: 10px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: 0.3s;
-}
-
-.card:hover {
-  transform: scale(1.05);
-}
-
-.card img {
-  width: 100%;
-  height: 100px;
-  object-fit: cover;
-}
-
-.card p {
-  padding: 10px;
-  font-size: 14px;
-}
-
-/* Player */
-.player {
-  margin-top: 20px;
-}
-
-video {
-  width: 100%;
-  max-height: 500px;
-  border-radius: 10px;
-  background: black;
-}
+.epg { font-size:12px; color:#aaa; margin-top:5px;}
+.favorite { color:gold; font-size:12px;}
 </style>
 
 </head>
 
 <body>
 
-<header>📺 IPTV Pro</header>
+<header>📺 IPTV PRO+</header>
 
 <div class="container">
 
 <div class="sidebar">
-  <h3>หมวดหมู่</h3>
-  <button onclick="filter('all')">ทั้งหมด</button>
-  <button onclick="filter('movie')">หนัง</button>
-  <button onclick="filter('news')">ข่าว</button>
+  <input type="file" id="fileInput">
+  <input type="text" id="search" placeholder="ค้นหาช่อง...">
+  <button onclick="showFavorites()">⭐ Favorite</button>
 </div>
 
 <div class="content">
+  <div class="grid" id="channels"></div>
 
-<!-- 🎬 PLAYER อยู่ด้านบน -->
+<video id="video" controls></video>
 
-<div class="player">
-  <video id="video" controls autoplay></video>
+<button onclick="goFullscreen()">🖥️ Fullscreen</button> <button onclick="miniPlayer()">📱 Mini Player</button>
+
+  <div id="epg"></div>
 </div>
 
-<!-- 📺 CHANNEL GRID อยู่ด้านล่าง -->
-
-<div class="grid" id="channelList"></div>
-
-</div>
-
-</div>
 </div>
 
 <script>
-// ตัวอย่างช่อง (แก้เพิ่มได้)
-const channels = [
-  {
-    name: "BoxCinema",
-    logo: "https://i.imgur.com/LGJlmtp.png",
-    url: "https://d3s7x6kmqcnb6b.cloudfront.net/hls/QELTQVA/m.m3u8",
-    category: "movie"
-  },
-  {
-    name: "News Channel",
-    logo: "https://via.placeholder.com/300x150",
-    url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-    category: "news"
+let channels = [];
+let favorites = JSON.parse(localStorage.getItem("fav")) || [];
+let epgData = {};
+
+// ====== LOAD M3U ======
+document.getElementById("fileInput").addEventListener("change", function(e){
+  const reader = new FileReader();
+  reader.onload = function() {
+    parseM3U(reader.result);
+  };
+  reader.readAsText(e.target.files[0]);
+});
+
+function parseM3U(data) {
+  const lines = data.split("\n");
+  let ch = {};
+
+  channels = [];
+
+  lines.forEach(line => {
+    if (line.startsWith("#EXTINF")) {
+      ch = {
+        name: line.split(",")[1],
+        logo: (line.match(/tvg-logo="(.*?)"/)||[])[1],
+        group: (line.match(/group-title="(.*?)"/)||[])[1]
+      };
+    } else if (line.startsWith("http")) {
+      ch.url = line.trim();
+      channels.push(ch);
+    }
+  });
+
+  render();
+}
+
+// ====== SEARCH ======
+document.getElementById("search").addEventListener("input", function(){
+  render(this.value.toLowerCase());
+});
+
+// ====== RENDER ======
+function render(search="") {
+  const container = document.getElementById("channels");
+  container.innerHTML = "";
+
+  channels
+    .filter(c => c.name.toLowerCase().includes(search))
+    .forEach(c => {
+      const div = document.createElement("div");
+      div.className = "card";
+
+      const isFav = favorites.includes(c.url);
+
+      div.innerHTML = `
+        <img src="${c.logo || 'https://via.placeholder.com/300x150'}">
+        <p>${c.name}</p>
+        <div class="favorite">${isFav ? "⭐ Favorite" : ""}</div>
+      `;
+
+      div.onclick = () => play(c);
+
+      div.oncontextmenu = (e) => {
+        e.preventDefault();
+        toggleFavorite(c.url);
+      };
+
+      container.appendChild(div);
+    });
+}
+
+// ====== PLAY ======
+function play(channel) {
+  const video = document.getElementById("video");
+
+  if (Hls.isSupported()) {
+    const hls = new Hls();
+    hls.loadSource(channel.url);
+    hls.attachMedia(video);
+  } else {
+    video.src = channel.url;
   }
-];
 
-const list = document.getElementById("channelList");
-
-function render(filterType = "all") {
-  list.innerHTML = "";
-
-  channels
-    .filter(c => filterType === "all" || c.category === filterType)
-    .forEach(ch => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML = `
-        <img src="${ch.logo}">
-        <p>${ch.name}</p>
-      `;
-      card.onclick = () => play(ch.url);
-      list.appendChild(card);
-    });
+  showEPG(channel.name);
 }
 
-function render(filterType = "all") {
-  list.innerHTML = "";
-
-  channels
-    .filter(c => filterType === "all" || c.category === filterType)
-    .forEach(ch => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML = `
-        <img src="${ch.logo}">
-        <p>${ch.name}</p>
-      `;
-      card.onclick = () => play(ch.url);
-      list.appendChild(card);
-    });
+// ====== FAVORITE ======
+function toggleFavorite(url) {
+  if (favorites.includes(url)) {
+    favorites = favorites.filter(f => f !== url);
+  } else {
+    favorites.push(url);
+  }
+  localStorage.setItem("fav", JSON.stringify(favorites));
+  render();
 }
 
-function filter(type) {
-  render(type);
+function showFavorites() {
+  channels = channels.filter(c => favorites.includes(c.url));
+  render();
 }
 
-render();
+// ====== FULLSCREEN ======
+function goFullscreen() {
+  document.getElementById("video").requestFullscreen();
+}
+
+// ====== MINI PLAYER ======
+function miniPlayer() {
+  const video = document.getElementById("video");
+  if (document.pictureInPictureEnabled) {
+    video.requestPictureInPicture();
+  }
+}
+
+// ====== EPG (XMLTV) ======
+async function loadEPG(url) {
+  const res = await fetch(url);
+  const text = await res.text();
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(text, "text/xml");
+
+  xml.querySelectorAll("programme").forEach(p => {
+    const ch = p.getAttribute("channel");
+    const title = p.querySelector("title")?.textContent;
+
+    if (!epgData[ch]) epgData[ch] = [];
+    epgData[ch].push(title);
+  });
+}
+
+// แสดง EPG
+function showEPG(name) {
+  const epg = document.getElementById("epg");
+  const list = epgData[name] || [];
+  epg.innerHTML = "<div class='epg'>📡 " + list.slice(0,5).join("<br>") + "</div>";
+}
+
+// ตัวอย่างโหลด EPG (ใส่ลิงก์ XMLTV)
+loadEPG("https://iptv-org.github.io/epg/guides/thailand.xml");
 </script>
 
 </body>
