@@ -109,7 +109,6 @@ video {
 
 </head>
 
-
 <body>
 
 <header>📺 IPTV Pro</header>
@@ -121,31 +120,22 @@ video {
   <button onclick="filter('all')">ทั้งหมด</button>
   <button onclick="filter('movie')">หนัง</button>
   <button onclick="filter('news')">ข่าว</button>
+   <button onclick="filter('tv')">ทีวี</button>
 </div>
 
 <div class="content">
 
 <div class="grid" id="channelList"></div>
 
-<!-- PLAYER -->
-
 <div class="player">
   <video id="video" controls autoplay></video>
-
-  <div class="controls">
-    <button onclick="goFullscreen()">🖥️ Fullscreen</button>
-    <button onclick="miniPlayer()">📱 Mini Player</button>
-  </div>
 </div>
-
-<!-- CHANNEL -->
-
-<div class="grid" id="channelList"></div>
 
 </div>
 </div>
 
 <script>
+// ตัวอย่างช่อง (แก้เพิ่มได้)
 const channels = [
   {
     name: "BoxCinema",
@@ -153,81 +143,53 @@ const channels = [
     url: "https://d3s7x6kmqcnb6b.cloudfront.net/hls/QELTQVA/m.m3u8",
     category: "movie"
   },
+    {
+    name: "tv",
+    logo: "https://notebookspec.com/web/wp-content/uploads/2023/09/TVonline.jpg",
+    url: "https://d3s7x6kmqcnb6b.cloudfront.net/hls/QELTQVA/m.m3u8",
+    category: "tv"
+  },
   {
-    name: "ESPN 2",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/6/60/ESPN_logos.png",
-    url: "http://sinalprivado.info:80/live/632035/GqGcFV4ntu/22005.ts",
-    category: "sports"
+    name: "News Channel",
+    logo: "https://via.placeholder.com/300x150",
+    url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    category: "news"
   }
 ];
 
 const list = document.getElementById("channelList");
 
-function render() {
+function render(filterType = "all") {
   list.innerHTML = "";
 
-  channels.forEach(ch => {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <img src="${ch.logo}">
-      <p>${ch.name}</p>
-    `;
-    card.onclick = () => play(ch.url);
-    list.appendChild(card);
-  });
+  channels
+    .filter(c => filterType === "all" || c.category === filterType)
+    .forEach(ch => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <img src="${ch.logo}">
+        <p>${ch.name}</p>
+      `;
+      card.onclick = () => play(ch.url);
+      list.appendChild(card);
+    });
 }
 
-// 🎬 PLAY รองรับหลาย format
 function play(url) {
   const video = document.getElementById("video");
 
-  // ล้าง player เก่า
-  video.pause();
-  video.removeAttribute("src");
-  video.load();
-
-  // .m3u8 / .hls
-  if (url.includes(".m3u8") || url.includes(".hls")) {
-    if (Hls.isSupported()) {
-      const hls = new Hls();
-      hls.loadSource(url);
-      hls.attachMedia(video);
-    } else {
-      video.src = url;
-    }
-  }
-  // .ts
-  else if (url.includes(".ts")) {
-    video.src = url;
-  }
-  // fallback
-  else {
-    video.src = url;
-  }
-}
-
-// 🖥️ FULLSCREEN
-function goFullscreen() {
-  const video = document.getElementById("video");
-  if (video.requestFullscreen) {
-    video.requestFullscreen();
-  }
-}
-
-// 📱 MINI PLAYER (PiP)
-function miniPlayer() {
-  const video = document.getElementById("video");
-
-  if (document.pictureInPictureEnabled) {
-    video.requestPictureInPicture();
+  if (Hls.isSupported()) {
+    const hls = new Hls();
+    hls.loadSource(url);
+    hls.attachMedia(video);
   } else {
-    alert("ไม่รองรับ Mini Player");
+    video.src = url;
   }
 }
 
-function filter() {
-  render();
+function filter(type) {
+  render(type);
 }
 
 render();
