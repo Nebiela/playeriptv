@@ -175,17 +175,21 @@ function render(filterType = "all") {
     });
 }
 
-function play(url, name) {
-  const video = document.getElementById("video");
-  document.getElementById("nowPlaying").innerText = "กำลังเล่น: " + name;
+function render(filterType = "all") {
+  list.innerHTML = "";
 
-  if (Hls.isSupported()) {
-    const hls = new Hls();
-    hls.loadSource(url);
-    hls.attachMedia(video);
-  } else {
-    video.src = url;
-  }
+  channels
+    .filter(c => filterType === "all" || c.category === filterType)
+    .forEach(ch => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <img src="${ch.logo}">
+        <p>${ch.name}</p>
+      `;
+      card.onclick = () => play(ch.url);
+      list.appendChild(card);
+    });
 }
 
 function filter(type) {
