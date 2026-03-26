@@ -15,33 +15,72 @@ body {
   color: white;
 }
 
+/* Header */
 header {
   padding: 15px 20px;
   font-size: 22px;
+  font-weight: bold;
   background: #141414;
+  border-bottom: 1px solid #222;
 }
 
-.container { display: flex; }
+/* Layout */
+.container {
+  display: flex;
+}
 
+/* Sidebar */
 .sidebar {
   width: 200px;
   background: #111;
   height: 100vh;
   padding: 15px;
+  border-right: 1px solid #222;
 }
 
-.content { flex: 1; padding: 20px; }
+.sidebar h3 {
+  color: #aaa;
+}
 
+.sidebar button {
+  width: 100%;
+  margin: 5px 0;
+  padding: 10px;
+  background: #222;
+  border: none;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sidebar button:hover {
+  background: #e50914;
+}
+
+/* Content */
+.content {
+  flex: 1;
+  padding: 20px;
+}
+
+/* Grid */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 15px;
 }
 
+/* Card */
 .card {
   background: #1c1c1c;
   border-radius: 10px;
+  overflow: hidden;
   cursor: pointer;
+  transition: 0.3s;
+}
+
+.card:hover {
+  transform: scale(1.05);
 }
 
 .card img {
@@ -50,39 +89,26 @@ header {
   object-fit: cover;
 }
 
-.card p { padding: 10px; }
+.card p {
+  padding: 10px;
+  font-size: 14px;
+}
 
-/* PLAYER */
+/* Player */
 .player {
-  position: sticky;
-  top: 0;
-  background: #0f0f0f;
-  z-index: 10;
+  margin-top: 20px;
 }
 
 video {
   width: 100%;
-  max-height: 400px;
+  max-height: 500px;
   border-radius: 10px;
   background: black;
-}
-
-.controls {
-  margin-top: 10px;
-}
-
-.controls button {
-  padding: 8px 12px;
-  margin-right: 5px;
-  border: none;
-  border-radius: 5px;
-  background: #e50914;
-  color: white;
-  cursor: pointer;
 }
 </style>
 
 </head>
+
 
 <body>
 
@@ -91,10 +117,15 @@ video {
 <div class="container">
 
 <div class="sidebar">
+  <h3>หมวดหมู่</h3>
   <button onclick="filter('all')">ทั้งหมด</button>
+  <button onclick="filter('movie')">หนัง</button>
+  <button onclick="filter('news')">ข่าว</button>
 </div>
 
 <div class="content">
+
+<div class="grid" id="channelList"></div>
 
 <!-- PLAYER -->
 
