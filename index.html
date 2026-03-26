@@ -175,8 +175,9 @@ function render(filterType = "all") {
     });
 }
 
-function play(url) {
+function play(url, name) {
   const video = document.getElementById("video");
+  document.getElementById("nowPlaying").innerText = "กำลังเล่น: " + name;
 
   if (Hls.isSupported()) {
     const hls = new Hls();
