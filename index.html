@@ -15,72 +15,33 @@ body {
   color: white;
 }
 
-/* Header */
 header {
   padding: 15px 20px;
   font-size: 22px;
-  font-weight: bold;
   background: #141414;
-  border-bottom: 1px solid #222;
 }
 
-/* Layout */
-.container {
-  display: flex;
-}
+.container { display: flex; }
 
-/* Sidebar */
 .sidebar {
   width: 200px;
   background: #111;
   height: 100vh;
   padding: 15px;
-  border-right: 1px solid #222;
 }
 
-.sidebar h3 {
-  color: #aaa;
-}
+.content { flex: 1; padding: 20px; }
 
-.sidebar button {
-  width: 100%;
-  margin: 5px 0;
-  padding: 10px;
-  background: #222;
-  border: none;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.sidebar button:hover {
-  background: #e50914;
-}
-
-/* Content */
-.content {
-  flex: 1;
-  padding: 20px;
-}
-
-/* Grid */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 15px;
 }
 
-/* Card */
 .card {
   background: #1c1c1c;
   border-radius: 10px;
-  overflow: hidden;
   cursor: pointer;
-  transition: 0.3s;
-}
-
-.card:hover {
-  transform: scale(1.05);
 }
 
 .card img {
@@ -89,21 +50,35 @@ header {
   object-fit: cover;
 }
 
-.card p {
-  padding: 10px;
-  font-size: 14px;
-}
+.card p { padding: 10px; }
 
-/* Player */
+/* PLAYER */
 .player {
-  margin-top: 20px;
+  position: sticky;
+  top: 0;
+  background: #0f0f0f;
+  z-index: 10;
 }
 
 video {
   width: 100%;
-  max-height: 500px;
+  max-height: 400px;
   border-radius: 10px;
   background: black;
+}
+
+.controls {
+  margin-top: 10px;
+}
+
+.controls button {
+  padding: 8px 12px;
+  margin-right: 5px;
+  border: none;
+  border-radius: 5px;
+  background: #e50914;
+  color: white;
+  cursor: pointer;
 }
 </style>
 
@@ -116,25 +91,30 @@ video {
 <div class="container">
 
 <div class="sidebar">
-  <h3>หมวดหมู่</h3>
   <button onclick="filter('all')">ทั้งหมด</button>
-  <button onclick="filter('movie')">หนัง</button>
-  <button onclick="filter('news')">ข่าว</button>
 </div>
 
 <div class="content">
 
+<!-- PLAYER -->
 
 <div class="player">
   <video id="video" controls autoplay></video>
+
+  <div class="controls">
+    <button onclick="goFullscreen()">🖥️ Fullscreen</button>
+    <button onclick="miniPlayer()">📱 Mini Player</button>
+  </div>
 </div>
+
+<!-- CHANNEL -->
+
 <div class="grid" id="channelList"></div>
 
 </div>
 </div>
 
 <script>
-// ตัวอย่างช่อง (แก้เพิ่มได้)
 const channels = [
   {
     name: "BoxCinema",
@@ -143,46 +123,80 @@ const channels = [
     category: "movie"
   },
   {
-    name: "News Channel",
-    logo: "https://via.placeholder.com/300x150",
-    url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
-    category: "news"
+    name: "ESPN 2",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/6/60/ESPN_logos.png",
+    url: "http://sinalprivado.info:80/live/632035/GqGcFV4ntu/22005.ts",
+    category: "sports"
   }
 ];
 
 const list = document.getElementById("channelList");
 
-function render(filterType = "all") {
+function render() {
   list.innerHTML = "";
 
-  channels
-    .filter(c => filterType === "all" || c.category === filterType)
-    .forEach(ch => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML = `
-        <img src="${ch.logo}">
-        <p>${ch.name}</p>
-      `;
-      card.onclick = () => play(ch.url);
-      list.appendChild(card);
-    });
+  channels.forEach(ch => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <img src="${ch.logo}">
+      <p>${ch.name}</p>
+    `;
+    card.onclick = () => play(ch.url);
+    list.appendChild(card);
+  });
 }
 
+// 🎬 PLAY รองรับหลาย format
 function play(url) {
   const video = document.getElementById("video");
 
-  if (Hls.isSupported()) {
-    const hls = new Hls();
-    hls.loadSource(url);
-    hls.attachMedia(video);
-  } else {
+  // ล้าง player เก่า
+  video.pause();
+  video.removeAttribute("src");
+  video.load();
+
+  // .m3u8 / .hls
+  if (url.includes(".m3u8") || url.includes(".hls")) {
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(url);
+      hls.attachMedia(video);
+    } else {
+      video.src = url;
+    }
+  }
+  // .ts
+  else if (url.includes(".ts")) {
+    video.src = url;
+  }
+  // fallback
+  else {
     video.src = url;
   }
 }
 
-function filter(type) {
-  render(type);
+// 🖥️ FULLSCREEN
+function goFullscreen() {
+  const video = document.getElementById("video");
+  if (video.requestFullscreen) {
+    video.requestFullscreen();
+  }
+}
+
+// 📱 MINI PLAYER (PiP)
+function miniPlayer() {
+  const video = document.getElementById("video");
+
+  if (document.pictureInPictureEnabled) {
+    video.requestPictureInPicture();
+  } else {
+    alert("ไม่รองรับ Mini Player");
+  }
+}
+
+function filter() {
+  render();
 }
 
 render();
